@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sacco Growth Model Calculator</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<!--    Font Awesome CSS-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Styles -->
+    <style>
+        body {
+            background-color: rgba(180, 98, 11, 0.99);
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 50px;
+        }
+
+        h1 {
+            color: #007bff;
+            text-align: center;
+        }
+
+        form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        label {
+            font-weight: bold;
+            color: #495057;
+        }
+
+        input {
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .error-message {
+            color: red;
+            margin-top: 10px;
+        }
+
+        .usd-sign-container::before {
+            content: " ";
+            position: absolute;
+            left: 10px;
+            line-height: 38px;
+        }
+
+        .orange-tag {
+            color: orange;
+            font-weight: bold;
+            font-size: 30px;
+        }
+
+        /*.contribution-tag {*/
+        /*    color: orange;*/
+        /*    font-weight: bold;*/
+        /*    font-size: 20px;*/
+        /*}*/
+
+        hr {
+            border: 1px solid rgba(180, 107, 11, 0.99); /* Set the border color */
+            margin: 10px 0; /* Adjust the margin if needed */
+            font-weight: bold; /* Make the line bold */
+        }
+
+        /* Custom CSS for Dashboard Blocks */
+        .dashboard-block {
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            padding: 2px;
+        }
+
+        .zambia-block {
+            background-color: orange;
+        }
+
+        .africa-block {
+            background-color: gray;
+        }
+
+        .global-block {
+            background-color: #9a9a0b;
+        }
+
+        /* Additional styling if needed */
+        .map-image {
+            width: 100%;
+            height: auto;
+        }
+
+        .value-container {
+            padding: 2px;
+            text-align: center;
+            color: #fff;
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>SACCO Growth Model</h1>
+    <div class="d-flex justify-content-center align-items-center mb-3">
+        <img src="images/unza2.png" alt="unza" style="width: 150px; max-height: 150px;">
+    </div>
+    <ul class="nav nav-tabs" id="myTabs">
+        <li class="nav-item">
+            <a class="nav-link active" id="blank-tab" data-toggle="tab" href="#blank">Profile</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link " id="existing-tab" data-toggle="tab" href="#existing">Capital Structure</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link " id="confirmation-tab" data-toggle="tab" href="#confirmation">Preview</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link " id="dashboard-tab" data-toggle="tab" href="#dashboard">Dashboard</a>
+        </li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="blank">
+            <form th:action="@{/calculate}" method="post"onsubmit="return validateProfile()">
+                <!-- Blank Fields -->
+                <div class="form-group">
+                    <label for="nameOfSacco">Name of SACCO:</label>
+                    <input type="text" class="form-control" id="nameOfSacco" name="nameOfSacco" required>
+                </div>
+                <div class="form-group">
+                    <label for="emailOfSacco">Email Address:</label>
+                    <input type="email" class="form-control" id="emailOfSacco" name="emailOfSacco" required>
+                </div>
+                <div class="form-group">
+                    <label for="membershipOfSacco">Membership:</label>
+                    <input type="number" class="form-control" id="membershipOfSacco" name="membershipOfSacco" required oninput="updateChart()">
+                </div>
+                <div class="form-group usd-sign-container">
+                    <label for="assetsOfSacco">Assets (USD):</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">$</span>
+                        </div>
+                        <input type="text" class="form-control" id="assetsOfSacco" name="assetsOfSacco" pattern="^\d+(\.\d{1,2})?$" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="yearOfRegOfSacco">Year of Registration:</label>
+                    <input type="date" class="form-control" id="yearOfRegOfSacco" name="yearOfRegOfSacco" required>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" th:href="@{/index}">< Back to Welcome Page</button>
+                    <button type="button" class="btn btn-primary" onclick="goToCapitalTab()">Next ></button>
+                </div>
+                <div class="error-message" id="profile-error"></div>
+            </form>
+        </div>
+        <div class="tab-pane fade " id="existing">
+            <form th:action="@{/calculate}" method="post" onsubmit="return validateCapitalStructureFields()">
+                <!-- Existing Fields -->
+                <div class="form-group usd-sign-container">
+                    <label for="equityFinancing">Equity Financing (USD):</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">$</span>
+                        </div>
+                        <input type="text" class="form-control" id="equityFinancing" name="equityFinancing" pattern="^\d+(\.\d{1,2})?$" required>
+                    </div>
+                </div>
+                <div class="form-group usd-sign-container">
+                    <label for="retainedEarnings">Retained Earnings (USD):</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">$</span>
+                        </div>
+                        <input type="text" class="form-control" id="retainedEarnings" name="retainedEarnings" pattern="^\d+(\.\d{1,2})?$" required>
+                    </div>
+                </div>
+                <div class="form-group usd-sign-container">
+                    <label for="debtFinancing">Debt Financing (USD):</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">$</span>
+                        </div>
+                        <input type="text" class="form-control" id="debtFinancing" name="debtFinancing" pattern="^\d+(\.\d{1,2})?$" required>
+                    </div>
+                </div>
+                <div class="form-group usd-sign-container">
+                    <label for="savings">Savings (USD):</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">$</span>
+                        </div>
+                        <input type="text" class="form-control" id="savings" name="savings" pattern="^\d+(\.\d{1,2})?$" required>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" onclick="goBack()">< Back to Profile</button>
+                    <button type="button" class="btn btn-primary" onclick="nextTab()">Finish ></button>
+                </div>
+                <div class="error-message" id="capital-structure-error"></div>
+            </form>
+        </div>
+        <div class="tab-pane fade" id="confirmation">
+            <h2></h2>
+            <form>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="confirmNameOfSacco">Name of SACCO:</label>
+                            <input type="text" class="form-control" id="confirmNameOfSacco" name="confirmNameOfSacco" disabled>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="confirmEmailOfSacco">Email Address:</label>
+                            <input type="email" class="form-control" id="confirmEmailOfSacco" name="confirmEmailOfSacco" disabled>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="confirmMembershipOfSacco">Membership:</label>
+                            <input type="text" class="form-control" id="confirmMembershipOfSacco" name="confirmMembershipOfSacco" disabled>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="confirmAssetsOfSacco">Assets (USD):</label>
+                            <input type="text" class="form-control" id="confirmAssetsOfSacco" name="confirmAssetsOfSacco" disabled>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="confirmYearOfRegOfSacco">Year of Registration:</label>
+                            <input type="text" class="form-control" id="confirmYearOfRegOfSacco" name="confirmYearOfRegOfSacco" disabled>
+                        </div>
+                    </div>
+                    <!-- Display values from #existing-tab -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="confirmEquityFinancing">Equity Financing (USD):</label>
+                            <input type="text" class="form-control" id="confirmEquityFinancing" name="confirmEquityFinancing" disabled>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="confirmRetainedEarnings">Retained Earnings (USD):</label>
+                            <input type="text" class="form-control" id="confirmRetainedEarnings" name="confirmRetainedEarnings" disabled>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="confirmDebtFinancing">Debt Financing (USD):</label>
+                            <input type="text" class="form-control" id="confirmDebtFinancing" name="confirmDebtFinancing" disabled>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="confirmSavings">Savings (USD):</label>
+                            <input type="text" class="form-control" id="confirmSavings" name="confirmSavings" disabled>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" onclick="goBackFromConfirmation()">< Back to Capital Structure</button>
+                    <button type="button" class="btn btn-primary" onclick="goToDashboard()">Go to Dashboard ></button>
+                </div>
+                <div class="error-message" id="dashboard-error"></div>
+<!--                 Loader element-->
+                <div id="loader" class="spinner-border text-primary" role="status" style="display: none;">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            </form>
+        </div>
+        <!-- Dashboard Tab -->
+        <div class="tab-pane fade" id="dashboard">
+            <h2></h2>
+            <div class="row">
+                <div class="col-4">
+                    <div class="form-group">
+                        <label for="growthRate" class="usd-sign-container orange-tag">Growth Rate:</label>
+                        <!-- Wrap growthRate in a span with Bootstrap button classes -->
+                        <span id="growthRate" class="btn btn-warning orange-tag" style="font-size: 30px; color: black;"></span>
+                    </div>
+                </div>
+                <!-- div for contributedGrowthInZambia -->
+                <div class="col-8">
+                    <div class="form-group">
+                        <label for="contributedGrowthInZambia" class="usd-sign-container orange-tag">Contribution to Zambia's SACCO Sector:</label>
+                        <!-- Wrap contributedGrowthInZambia in a span with Bootstrap button classes -->
+                        <span id="contributedGrowthInZambia" class="btn btn-primary orange-tag" style="font-size: 30px; color: black;"></span>
+                    </div>
+                </div>
+            </div>
+            <!-- Add a canvas element to render the chart -->
+            <div class="row">
+                <div class="col-12">
+                    <canvas id="myChart" width="200" height="50"></canvas>
+                </div>
+            </div>
+            <div class="col-12">
+                <hr>
+            </div>
+
+            <div class="row">
+            <!-- First Block - Zambia -->
+            <div class="col-md-4">
+                <div class="dashboard-block zambia-block text-center" >
+                    <h7><strong>Zambia</strong></h7>
+                    <div class="value-container">
+                        <h7>US$ 25.2 million</h7>
+                    </div>
+                </div>
+            </div>
+            <!-- Second Block - Africa -->
+            <div class="col-md-4">
+                <div class="dashboard-block africa-block text-center">
+                    <h7><strong>Africa</strong></h7>
+                    <div class="value-container">
+                        <h7>US$ 24.6 billion</h7>
+                    </div>
+                </div>
+            </div>
+            <!-- Third Block - Global -->
+            <div class="col-md-4">
+                <div class="dashboard-block global-block text-center">
+                    <h7><strong>Global</strong></h7>
+                    <div class="value-container">
+                        <h7>US$ 3.6 trillion</h7>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Bootstrap JS and dependencies (Optional, if needed) -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+<script>
+let myChart;
+// Function to render the chart
+function renderChart() {
+    const nameOfSacco = document.getElementById("nameOfSacco").value;
+    // Sample data for the bar graph
+    const data = {
+        labels: ['Global', 'Africa', 'Zambia', nameOfSacco],
+        datasets: [{
+            label: 'Penetration (%)',
+            backgroundColor: 'rgb(26,65,161)',
+            borderColor: 'rgb(26,65,161)',
+            borderWidth: 2,
+            data: [13.9, 14.7, 15.7, 40],
+        }],
+    };
+    // Get the canvas element and create a 2d rendering context
+    const ctx = document.getElementById('myChart').getContext('2d');
+
+    // Destroy the existing chart if it exists
+    if (myChart) {
+        myChart.destroy();
+    }
+    // Create a bar graph using Chart.js
+    myChart = new Chart(ctx, {
+        type: 'bar',
+        data: data,
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max:100,
+                },
+            },
+        },
+    });
+}
+    renderChart();
+    function goToCapitalTab() {
+        if (validateProfile()) {
+            // Set values in confirmation tab
+            document.getElementById("confirmNameOfSacco").value = document.getElementById("nameOfSacco").value;
+            document.getElementById("confirmEmailOfSacco").value = document.getElementById("emailOfSacco").value;
+            document.getElementById("confirmMembershipOfSacco").value = document.getElementById("membershipOfSacco").value;
+            document.getElementById("confirmAssetsOfSacco").value = document.getElementById("assetsOfSacco").value;
+            document.getElementById("confirmYearOfRegOfSacco").value = document.getElementById("yearOfRegOfSacco").value;
+            // Show the existing tab
+            $('#myTabs a[href="#existing"]').tab('show');
+        }
+    }
+    function nextTab() {
+        if (validateProfile() && validateCapitalStructureFields()) {
+            // Set values in confirmation tab
+            document.getElementById("confirmNameOfSacco").value = document.getElementById("nameOfSacco").value;
+            document.getElementById("confirmEmailOfSacco").value = document.getElementById("emailOfSacco").value;
+            document.getElementById("confirmMembershipOfSacco").value = document.getElementById("membershipOfSacco").value;
+            document.getElementById("confirmAssetsOfSacco").value = document.getElementById("assetsOfSacco").value;
+            document.getElementById("confirmYearOfRegOfSacco").value = document.getElementById("yearOfRegOfSacco").value;
+            document.getElementById("confirmEquityFinancing").value = document.getElementById("equityFinancing").value;
+            document.getElementById("confirmRetainedEarnings").value = document.getElementById("retainedEarnings").value;
+            document.getElementById("confirmDebtFinancing").value = document.getElementById("debtFinancing").value;
+            document.getElementById("confirmSavings").value = document.getElementById("savings").value;
+
+            $('#myTabs a[href="#confirmation"]').tab('show');
+        }
+    }
+    function validateProfile() {
+        const nameOfSacco = document.getElementById("nameOfSacco").value;
+        const emailOfSacco = document.getElementById("emailOfSacco").value;
+        const membershipOfSacco = document.getElementById("membershipOfSacco").value;
+        const assetsOfSacco = document.getElementById("assetsOfSacco").value;
+        const yearOfRegOfSacco = document.getElementById("yearOfRegOfSacco").value;
+
+        // Email validation using a regular expression
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailOfSacco)) {
+            document.getElementById("profile-error").innerHTML = "Invalid email format.";
+            return false;
+        }
+
+        if (!nameOfSacco || !emailOfSacco || !membershipOfSacco || !assetsOfSacco || !yearOfRegOfSacco) {
+            document.getElementById("profile-error").innerHTML = "All fields are required.";
+            return false;
+        } else {
+            document.getElementById("profile-error").innerHTML = "";
+            return true;
+        }
+    }
+    function validateCapitalStructureFields() {
+        const equityFinancing = document.getElementById("equityFinancing").value;
+        const retainedEarnings = document.getElementById("retainedEarnings").value;
+        const debtFinancing = document.getElementById("debtFinancing").value;
+        const savings = document.getElementById("savings").value;
+
+        if (!equityFinancing || !retainedEarnings || !debtFinancing || !savings) {
+            document.getElementById("capital-structure-error").innerHTML = "All fields are required.";
+            return false;
+        } else {
+            document.getElementById("capital-structure-error").innerHTML = "";
+            return true;
+        }
+    }
+    function goBack() {
+        $('#myTabs a[href="#blank"]').tab('show');
+    }
+    function goBackFromConfirmation() {
+        $('#myTabs a[href="#existing"]').tab('show');
+    }
+    function goToDashboard() {
+        // Show loader
+        document.getElementById("loader").style.display = "inline-block";
+
+        // Simulate an asynchronous operation (e.g., loading data)
+        setTimeout(function () {
+            // Hide loader
+            document.getElementById("loader").style.display = "none";
+
+            // Switch to the dashboard tab
+            $('#myTabs a[href="#dashboard"]').tab('show');
+
+            // Calculate and display the growth rate
+            calculateAndDisplayGrowthRate();
+
+            // Render the chart after switching to the dashboard tab
+            renderChart();
+        }, 2000); // You can adjust the timeout value based on your needs
+    }
+
+    // Function to calculate and display the growth rate
+    function calculateAndDisplayGrowthRate() {
+        // Retrieve values from the preview tab (You may need to adjust this based on your actual structure)
+        const equityFinancing = parseFloat(document.getElementById("confirmEquityFinancing").value);
+        const retainedEarnings = parseFloat(document.getElementById("confirmRetainedEarnings").value);
+        const debtFinancing = parseFloat(document.getElementById("confirmDebtFinancing").value);
+        const savings = parseFloat(document.getElementById("confirmSavings").value);
+        const confirmAssetsOfSacco = parseFloat(document.getElementById("confirmAssetsOfSacco").value);
+
+        // Calculate growth rate based on the provided formula
+        const total = 0.1045651 + 0.0422682 * equityFinancing - 0.0002056 * retainedEarnings + 0 * debtFinancing + 0.0484925 * savings + 0.00853;
+
+        const growthRate = (total / confirmAssetsOfSacco) * 100;
+
+        document.getElementById("growthRate").innerHTML = formatNumber(growthRate)+'%';
+
+        // Calculate contributedGrowthInZambia
+        const contributedGrowthInZambia = (confirmAssetsOfSacco / 25224541) * 100;
+
+        // Display contributedGrowthInZambia
+        document.getElementById("contributedGrowthInZambia").innerHTML = formatNumber(contributedGrowthInZambia)+'%';
+    }
+    // Function to format a number (e.g., round to 2 decimal places)
+    function formatNumber(number) {
+        return parseFloat(number).toFixed(2);
+    }
+    function updateChartData(saccoPenetrationRate) {
+        // Update the data for the "SACCO Penetration Rate" bar
+        myChart.data.datasets[0].data = [13.9, 14.7, 15.7,saccoPenetrationRate];
+
+        // Update the chart
+        myChart.update();
+
+        console.log("Updated chart data:", myChart.data.datasets[0].data);
+    }
+function updateChart() {
+    // Retrieve the updated value of membershipOfSacco
+    const membershipOfSacco = parseFloat(document.getElementById("membershipOfSacco").value);
+
+    // Calculate SACCO Penetration Rate
+    const saccoPenetrationRate = (membershipOfSacco / 149900) * 100;
+
+    console.log("Calculated saccoPenetrationRate:", saccoPenetrationRate);
+
+    // Update the data in the chart
+    updateChartData(saccoPenetrationRate);
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
+</body>
+</html>
